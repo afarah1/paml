@@ -44,4 +44,4 @@ yn00.o : paml.h yn00.c
 	$(CC) $(CFLAGS) -c yn00.c
 
 clean :
-	-rm *.o $(PRGS)
+	-rm -f *.o $(PRGS) infinitesites
