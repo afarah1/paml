@@ -1,10 +1,8 @@
 PRGS =  baseml codeml basemlg mcmctree pamp evolver yn00 chi2
-CC = cc # cc, gcc, cl
-override CFLAGS += -O3 -Wall -Wno-unused-result
-#CC = icc
-#CFLAGS = -fast -Wall
-
-LIBS = -lm # -lM
+CC = cc
+# Uncomment -DUSE_OMP -fopenmp and -lgomp for parallel execution using OpenMP
+override CFLAGS += -O3 -Wall -Wno-unused-result #-DUSE_OMP -fopenmp
+LIBS = -lm # -lgomp
 
 all : $(PRGS)
 

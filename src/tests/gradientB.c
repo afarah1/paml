@@ -76,11 +76,14 @@ test_gradientB(void)
     assert(double_equal(expected[1], g[1], 2 * eh));
     assert(double_equal(expected[2], g[2], 2 * eh));
   }
+
+  return(0);
 }
 
 int
 main()
 {
+  noisy = 9;
   test_gradientB();
   return 0;
 }

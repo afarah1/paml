@@ -1,7 +1,8 @@
 PRGS = gradientB
 CC = cc 
-override CFLAGS += -O3 -Wall -Wno-unused-result
-LIBS = -lm 
+# Uncomment -DUSE_OMP -fopenmp and -lgomp for parallel execution using OpenMP
+override CFLAGS += -O3 -Wall -Wno-unused-result -DUSE_OMP -fopenmp 
+LIBS = -lm -lgomp
 
 all : $(PRGS)
 

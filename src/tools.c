@@ -3,6 +3,10 @@
 */
 #include "paml.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #ifdef USE_GSL
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_linalg.h>
@@ -6493,6 +6497,63 @@ extern int noisy, Iround;
 extern double SIZEp;
 
 /*
+ * Calculates the central difference at x[i].
+ *
+ * This can be called in parallel for each i.
+ *
+ * @i   the ith variable
+ * @n   size of x
+ * @x   the variable array
+ * @g   the result array
+ * @fun the function to differentiate
+ * @eh  epsilon
+ */
+static void
+central_difference(int i, int n, double x[], double g[],
+   double(*fun)(double x[], int n), double eh)
+{
+   int j;
+   double *x0 = malloc(n * sizeof(*x0)),
+          *x1 = malloc(n * sizeof(*x1));
+   for (j = 0; j < n; j++)  
+      x0[j] = x1[j] = x[j];
+   eh = pow(eh, .67);   
+   x0[i] -= eh;  
+   x1[i] += eh;
+   g[i] = ((*fun)(x1, n) - (*fun)(x0, n)) / (eh *2.0);
+   free(x0);
+   free(x1);
+}
+
+/*
+ * Calculates the forward or backward difference at x[i].
+ *
+ * This can be called in parallel for each i.
+ *
+ * @i     the ith variable
+ * @n     size of x
+ * @x     the variable array
+ * @f0    value of fun(x) at x0, i.e. fa
+ * @g     the result array
+ * @fun   the function to differentiate
+ * @x0    allocated space of n * sizeof(*x)
+ * @eh    epsilon
+ * @xmark Which difference to use (1 forward, -1 backward)
+ */
+static void
+fw_bw_difference(int i, int n, double x[], double f0, double g[],
+   double(*fun)(double x[], int n), double eh, int xmark[])
+{
+   double *x1 = malloc(n * sizeof(*x1));
+   memcpy(x1, x, n * sizeof(*x1));
+   if (xmark[i]) 
+      eh *= -xmark[i];
+   x1[i] += eh;
+   g[i] = ((*fun)(x1, n) - f0) / eh;
+   free(x1);
+}
+
+/*
  * Calculates the gradient \nabla fun(x) = fun(x)/dx_i, i = [0..n-1].  Uses
  * finite differences (central, forward, or backward) for the first order
  * partial derivatives.
@@ -6508,24 +6569,26 @@ extern double SIZEp;
 int gradientB(int n, double x[], double f0, double g[],
    double(*fun)(double x[], int n), double space[], int xmark[])
 {
-   /* f0=fun(x) is always provided.
-   xmark=0: central; 1: upper; -1: down
-   */
-   int i, j;
-   double *x0 = space, *x1 = space + n, eh0 = Small_Diff, eh;  /* eh0=1e-6 || 1e-7 */
-
+   int i;
+   double eh;
+   // OpenMP code for parallel execution (skip for numerical method) 
+#ifdef USE_OMP
+   static int _gradientB_printf = 0;
+   int avail_threads = omp_get_num_procs();
+   int chunk_size = MAX(1, n / avail_threads);
+   if (noisy >= 9 && !_gradientB_printf) {
+     printf("Running gradientB in parallel. vars=%d, threads=%d, chunk=%d\n", n, avail_threads, chunk_size);
+     _gradientB_printf = 1;
+   }
+   #pragma omp parallel for schedule(static, chunk_size) num_threads(avail_threads) private(i, eh)
+#endif
+   // Numerical method implementation
    for (i = 0; i < n; i++) {
-      eh = eh0*(fabs(x[i]) + 1);
-      if (xmark[i] == 0 && (AlwaysCenter || SIZEp < 1)) {   /* central */
-         for (j = 0; j < n; j++)  x0[j] = x1[j] = x[j];
-         eh = pow(eh, .67);   x0[i] -= eh;  x1[i] += eh;
-         g[i] = ((*fun)(x1, n) - (*fun)(x0, n)) / (eh*2.0);
-      }
-      else {                                              /* forward or backward */
-         for (j = 0; j < n; j++)  x1[j] = x[j];
-         if (xmark[i]) eh *= -xmark[i];
-         x1[i] += eh;
-         g[i] = ((*fun)(x1, n) - f0) / eh;
+      eh = Small_Diff * (fabs(x[i]) + 1);
+      if (xmark[i] == 0 && (AlwaysCenter || SIZEp < 1)) {
+        central_difference(i, n, x, g, fun, eh);
+      } else {
+        fw_bw_difference(i, n, x, f0, g, fun, eh, xmark);
       }
    }
    return(0);
