@@ -4,35 +4,24 @@
 #include <math.h>
 #include "../tools.c"
 
-#define NVARS 3
-#define TEST_SIZE 10
+#define NVARS 8
+#define TEST_SIZE 100
 
-// x^2 + y^2
+// \sum{x_i^2}_{i=0..n-1}
 static double
-xyz_square(double x[], int n)
+x_sqrsum(double x[], int n)
 {
- return x[0] * x[0] + x[1] * x[1] + x[2] * x[2];
+  double ans = 0;
+  for (int i = 0; i < n; i++)
+    ans = ans + x[i] * x[i];
+  return ans;
 }
 
-// 2x (partial derivative of xyz_square in respect to x)
+// 2 * x[i] (partial derivative of x_sqrsum in respect to x_i)
 static double
-x_2(double x[], int n)
+x_2(double x[], int n, int i)
 {
-  return 2 * x[0];
-}
-
-// 2y (partial derivative of xyz_square in respect to y)
-static double
-y_2(double x[], int n)
-{
-  return 2 * x[1];
-}
-
-// 2z (partial derivative of xyz_square in respect to y)
-static double
-z_2(double x[], int n)
-{
-  return 2 * x[2];
+  return 2 * x[i];
 }
 
 static bool
@@ -42,39 +31,34 @@ double_equal(double a, double b, double epsilon)
 }
 
 /*
- * Test gradientB using a simple three-variable function and backward
- * differences for the first variable, central for the second and forward for
- * the third.
+ * Test gradientB using a simple N-variable function and a mixture of
+ * forward, backward, and central derivatives.
  */
 static int 
 test_gradientB(void)
 {
+  double eh, f0;
+  int i, j;
   int n = NVARS;
   double x[NVARS];
   double g[NVARS];
   double expected[NVARS];
   double space[NVARS * 2];
-  int xmark[NVARS] = { -1, 0, 1 };
+  int xmark[NVARS] = { -1, 0, 1, 0, -1, 1, 0, 1 };
 
-  for (int i = 0; i < TEST_SIZE; i++) {
-    double eh = Small_Diff * (i + 1);
-    x[0] = i;
-    x[1] = i;
-    x[2] = i;
-    expected[0] = x_2(x, n);
-    expected[1] = y_2(x, n);
-    expected[2] = z_2(x, n);
-    double f0 = xyz_square(x, n);
+  for (i = 0; i < TEST_SIZE; i++) {
+    eh = Small_Diff * (i + 1);
+    for (j = 0; j < n; j++) {
+      x[j] = i;
+      expected[j] = x_2(x, n, j);
+    }
+    f0 = x_sqrsum(x, n);
 
-    gradientB(n, x, f0, g, xyz_square, space, xmark);
+    gradientB(n, x, f0, g, x_sqrsum, space, xmark);
 
-    //printf("x=%lf, y=%lf, z=%lf\nexpected_dx=%lf, expected_dy=%lf, "
-    //                "expected_dz=%lf\nactual_dx=%lf, actual_dy=%lf, actual_dz=%lf\nepsilon=%lf\n", x[0],
-    //                x[1], x[2], expected[0], expected[1], expected[2], g[0], g[1], g[2], 2 * eh);
-
-    assert(double_equal(expected[0], g[0], 2 * eh));
-    assert(double_equal(expected[1], g[1], 2 * eh));
-    assert(double_equal(expected[2], g[2], 2 * eh));
+    for (j = 0; j < n; j++) {
+      assert(double_equal(expected[j], g[j], 2 * eh));
+    }
   }
 
   return(0);
