@@ -6510,19 +6510,15 @@ extern double SIZEp;
  */
 static void
 central_difference(int i, int n, double x[], double g[],
-   double(*fun)(double x[], int n), double eh)
+   double(*fun)(double x[], int n), double x0[], double x1[], double eh)
 {
    int j;
-   double *x0 = malloc(n * sizeof(*x0)),
-          *x1 = malloc(n * sizeof(*x1));
    for (j = 0; j < n; j++)  
       x0[j] = x1[j] = x[j];
    eh = pow(eh, .67);   
    x0[i] -= eh;  
    x1[i] += eh;
    g[i] = ((*fun)(x1, n) - (*fun)(x0, n)) / (eh *2.0);
-   free(x0);
-   free(x1);
 }
 
 /*
@@ -6542,15 +6538,13 @@ central_difference(int i, int n, double x[], double g[],
  */
 static void
 fw_bw_difference(int i, int n, double x[], double f0, double g[],
-   double(*fun)(double x[], int n), double eh, int xmark[])
+   double(*fun)(double x[], int n), double x1[], double eh, int xmark[])
 {
-   double *x1 = malloc(n * sizeof(*x1));
    memcpy(x1, x, n * sizeof(*x1));
    if (xmark[i]) 
       eh *= -xmark[i];
    x1[i] += eh;
    g[i] = ((*fun)(x1, n) - f0) / eh;
-   free(x1);
 }
 
 /*
@@ -6569,28 +6563,48 @@ fw_bw_difference(int i, int n, double x[], double f0, double g[],
 int gradientB(int n, double x[], double f0, double g[],
    double(*fun)(double x[], int n), double space[], int xmark[])
 {
-   int i;
+   int i, cur_thread;
    double eh;
+   double *x0, *x1;
+   void *mempool;
+   int block_size = 2 * n * sizeof(*x); // x0 and x1 for each thread
    // OpenMP code for parallel execution (skip for numerical method) 
 #ifdef USE_OMP
    static int _gradientB_printf = 0;
    int avail_threads = omp_get_num_procs();
    int chunk_size = MAX(1, n / avail_threads);
+   int actual_threads = MAX(1, MIN(avail_threads, n));
+   mempool = malloc(actual_threads * block_size);
    if (noisy >= 9 && !_gradientB_printf) {
-     printf("Running gradientB in parallel. vars=%d, threads=%d, chunk=%d\n", n, avail_threads, chunk_size);
+     printf("Running gradientB in parallel. vars=%d, threads=%d, chunk=%d\n", n, actual_threads, chunk_size);
      _gradientB_printf = 1;
    }
-   #pragma omp parallel for schedule(static, chunk_size) num_threads(avail_threads) private(i, eh)
+   #pragma omp parallel for schedule(static, chunk_size) num_threads(actual_threads) private(i, eh, cur_thread)
+#else
+   mempool = (void *)space;
 #endif
+
    // Numerical method implementation
    for (i = 0; i < n; i++) {
       eh = Small_Diff * (fabs(x[i]) + 1);
+#ifdef USE_OMP
+        cur_thread = omp_get_thread_num();
+#else
+        cur_thread = 0;
+#endif
       if (xmark[i] == 0 && (AlwaysCenter || SIZEp < 1)) {
-        central_difference(i, n, x, g, fun, eh);
+        x0 = mempool + cur_thread * block_size;
+        x1 = x0 + n; // x1 = n * sizeof(*x0) bytes ahead of x0, only mempool is void!
+        central_difference(i, n, x, g, fun, x0, x1, eh);
       } else {
-        fw_bw_difference(i, n, x, f0, g, fun, eh, xmark);
+        x1 = mempool + cur_thread * block_size;
+        fw_bw_difference(i, n, x, f0, g, fun, x1, eh, xmark);
       }
    }
+
+#ifdef OMP
+   free(mempool);
+#endif
    return(0);
 }
 
