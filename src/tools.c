@@ -6492,6 +6492,19 @@ int gradientB(int n, double x[], double f0, double g[],
 extern int noisy, Iround;
 extern double SIZEp;
 
+/*
+ * Calculates the gradient \nabla fun(x) = fun(x)/dx_i, i = [0..n-1].  Uses
+ * finite differences (central, forward, or backward) for the first order
+ * partial derivatives.
+ *
+ * @n     size of x
+ * @x     input array (value for each variable of fun)
+ * @f0    value of fun(x) at x0, i.e. fa
+ * @g     result (gradient) array
+ * @fun   the multivariable function to differentiate
+ * @space n * sizeof(*x) allocated space 
+ * @xmark Which difference to use (0 central, 1 forward, -1 backward)
+ */
 int gradientB(int n, double x[], double f0, double g[],
    double(*fun)(double x[], int n), double space[], int xmark[])
 {
