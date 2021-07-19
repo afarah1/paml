@@ -6579,7 +6579,7 @@ int gradientB(int n, double x[], double f0, double g[],
      printf("Running gradientB in parallel. vars=%d, threads=%d, chunk=%d\n", n, actual_threads, chunk_size);
      _gradientB_printf = 1;
    }
-   #pragma omp parallel for schedule(static, chunk_size) num_threads(actual_threads) private(i, eh, cur_thread)
+   #pragma omp parallel for schedule(static, chunk_size) num_threads(actual_threads) private(i, eh, cur_thread, x0, x1)
 #else
    mempool = (void *)space;
 #endif
@@ -6596,9 +6596,11 @@ int gradientB(int n, double x[], double f0, double g[],
         x0 = mempool + cur_thread * block_size;
         x1 = x0 + n; // x1 = n * sizeof(*x0) bytes ahead of x0, only mempool is void!
         central_difference(i, n, x, g, fun, x0, x1, eh);
+        //printf("thread=%d; type=central; g[%d]=%lf; x0=%ld; x1=%ld\n", cur_thread, i, g[i], ((void *)x0) - mempool, ((void *)x1) - mempool);
       } else {
         x1 = mempool + cur_thread * block_size;
         fw_bw_difference(i, n, x, f0, g, fun, x1, eh, xmark);
+        //printf("thread=%d; type=fwbw; g[%d]=%lf; x1=%ld\n", cur_thread, i, g[i], ((void *)x1) - mempool);
       }
    }
 
