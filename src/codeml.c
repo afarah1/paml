@@ -3490,13 +3490,16 @@ static double
 ConditionalPNode_InternalNode(int n, int pos0, int pos1, double t, double *PMat,
   struct TREEN *nodes, int inode, int ison)
 {
-  int h, j, k;
-  for (h = pos0; h < pos1; h++)
-     for (j = 0; j < n; j++) {
-        for (k = 0, t = 0; k < n; k++)
-           t += PMat[j*n + k] * nodes[ison].conP[h*n + k];
-        nodes[inode].conP[h*n + j] *= t;
-     }
+  int h, j, hj, k;
+  for (hj = pos0 * n; hj < pos1 * n; hj++) {
+    h = hj / n;
+    j = hj % n;
+    t = 0;
+    for (k = 0; k < n; k++) {
+      t += PMat[j * n + k] * nodes[ison].conP[h * n + k];
+    }
+    nodes[inode].conP[h * n + j] *= t;
+  }
   return t;
 }
 
