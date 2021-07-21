@@ -59,8 +59,10 @@ test_ConditionalPNode_InternalNode(void)
   ConditionalPNode_InternalNode(N, POS0, POS1, 0, PMat, &node_actual, 0, 0);
 
   for (size_t h = POS0; h < POS1; h++)
-    for (size_t j = 0; j < N; j++)
+    for (size_t j = 0; j < N; j++) {
+      //fprintf(stderr, "actual=%f; expected=%f\n", node_actual.conP[h*N + j], node_expected.conP[h*N + j]);
       assert(double_equal(node_actual.conP[h*N + j], node_expected.conP[h*N + j], Small_Diff));
+    }
 
   free(node_actual.conP);
   free(node_expected.conP);

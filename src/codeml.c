@@ -15,6 +15,9 @@
 */
 
 #include "paml.h"
+#ifdef USE_OMP
+#include "omp.h"
+#endif
 
 #define NS            5000
 #define NBRANCH       (NS*2 - 2)
@@ -3485,16 +3488,22 @@ int Qcodon2aa(double Qc[], double pic[], double Qaa[], double piaa[])
    return (0);
 }
 
-
 static double
 ConditionalPNode_InternalNode(int n, int pos0, int pos1, double t, double *PMat,
   struct TREEN *nodes, int inode, int ison)
 {
+#ifdef USE_OMP
+  int actual_threads = MAX(1, MIN(omp_get_num_procs(), n));
+  int chunk = MAX(1, n / actual_threads);
+#endif
   int h, j, hj, k;
   for (hj = pos0 * n; hj < pos1 * n; hj++) {
     h = hj / n;
     j = hj % n;
     t = 0;
+#ifdef USE_OMP
+    #pragma omp parallel for schedule(static, chunk) num_threads(actual_threads) default(shared) private(k) reduction(+:t)
+#endif
     for (k = 0; k < n; k++) {
       t += PMat[j * n + k] * nodes[ison].conP[h * n + k];
     }
