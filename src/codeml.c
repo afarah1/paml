@@ -3486,6 +3486,19 @@ int Qcodon2aa(double Qc[], double pic[], double Qaa[], double piaa[])
 }
 
 
+static double
+ConditionalPNode_InternalNode(int n, int pos0, int pos1, double t, double *PMat,
+  struct TREEN *nodes, int inode, int ison)
+{
+  int h, j, k;
+  for (h = pos0; h < pos1; h++)
+     for (j = 0; j < n; j++) {
+        for (k = 0, t = 0; k < n; k++)
+           t += PMat[j*n + k] * nodes[ison].conP[h*n + k];
+        nodes[inode].conP[h*n + j] *= t;
+     }
+  return t;
+}
 
 int ConditionalPNode(int inode, int igene, double x[])
 {
@@ -3530,12 +3543,7 @@ int ConditionalPNode(int inode, int igene, double x[])
             }
       }
       else {                                            /* internal node */
-         for (h = pos0; h < pos1; h++)
-            for (j = 0; j < n; j++) {
-               for (k = 0, t = 0; k < n; k++)
-                  t += PMat[j*n + k] * nodes[ison].conP[h*n + k];
-               nodes[inode].conP[h*n + j] *= t;
-            }
+        t = ConditionalPNode_InternalNode(n, pos0, pos1, t, PMat, nodes, inode, ison);
       }
 
    }        /*  for (ison)  */

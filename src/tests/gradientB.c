@@ -1,8 +1,8 @@
-#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
+#include <assert.h>
 #include "../tools.c"
+#include "shared.c"
 
 #define NVARS 8
 #define TEST_SIZE 100
@@ -22,12 +22,6 @@ static double
 x_2(double x[], int n, int i)
 {
   return 2 * x[i];
-}
-
-static bool
-double_equal(double a, double b, double epsilon)
-{
-  return fabs(a - b) < epsilon; 
 }
 
 /*
