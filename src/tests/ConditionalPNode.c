@@ -9,10 +9,7 @@
 #define N 61
 #define POS0 0
 #define POS1 190
-#ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
-#define NMAX MAX(N, POS1)
+#define NODELEN (N * POS1 + N)
 
 // Reference implementation
 static double
@@ -31,41 +28,46 @@ ref_ConditionalPNode_InternalNode(int n, int pos0, int pos1, double t, double *P
 
 // Initialize with pre-defined values
 static void
-init_ConditionalPNode_InternalNode(double *PMat, struct TREEN *node_actual)
+init_ConditionalPNode_InternalNode(double *PMat, struct TREEN *ison, struct TREEN *inode_expected, struct TREEN *inode_actual)
 {
-  for (size_t h = POS0; h < POS1; h++)
-    for (size_t j = 0; j < N; j++)
+  for (size_t h = POS0; h < POS1; h++) {
+    for (size_t j = 0; j < N; j++) {
       for (size_t k = 0; k < N; k++) {
         PMat[j*N + k] = 0.5;
-        node_actual->conP[h*N + k] = 1.1;
+        ison->conP[h*N + k] = 1.1;
       }
+      inode_actual->conP[h*N + j] = 1.1;
+      inode_expected->conP[h*N + j] = 1.1;
+    }
+  }
 }
 
 static void
 test_ConditionalPNode_InternalNode(void)
 {
-  double PMat[N * NMAX];
-  struct TREEN node_actual, node_expected;
-  size_t size = N * NMAX * sizeof(*(node_actual.conP));
+  double PMat[N * N];
+  struct TREEN ison, inode_actual, inode_expected;
+  ison.conP = malloc(NODELEN * sizeof(*(ison.conP)));
+  inode_actual.conP = malloc(NODELEN * sizeof(*(inode_actual.conP)));
+  inode_expected.conP = malloc(NODELEN * sizeof(*(inode_expected.conP)));
+  struct TREEN nodes[3] = { ison, inode_actual, inode_expected };
   
-  node_actual.conP = malloc(size);
-  init_ConditionalPNode_InternalNode(PMat, &node_actual);
-  
-  node_expected.conP = malloc(size);
-  memcpy(node_expected.conP, node_actual.conP, size);
+  init_ConditionalPNode_InternalNode(PMat, &ison, &inode_expected, &inode_actual);
 
-  ref_ConditionalPNode_InternalNode(N, POS0, POS1, 0, PMat, &node_expected, 0, 0);
+  ref_ConditionalPNode_InternalNode(N, POS0, POS1, 0, PMat, nodes, 0, 1);
+  //ConditionalPNode_InternalNode(N, POS0, POS1, 0, PMat, nodes, 1, 1);
 
-  ConditionalPNode_InternalNode(N, POS0, POS1, 0, PMat, &node_actual, 0, 0);
+  ConditionalPNode_InternalNode(N, POS0, POS1, 0, PMat, nodes, 0, 2);
+  //ref_ConditionalPNode_InternalNode(N, POS0, POS1, 0, PMat, nodes, 2, 2);
 
   for (size_t h = POS0; h < POS1; h++)
-    for (size_t j = 0; j < N; j++) {
-      //fprintf(stderr, "actual=%f; expected=%f\n", node_actual.conP[h*N + j], node_expected.conP[h*N + j]);
-      assert(double_equal(node_actual.conP[h*N + j], node_expected.conP[h*N + j], Small_Diff));
-    }
+    for (size_t j = 0; j < N; j++)
+      //fprintf(stderr, "%f, %f\n", inode_actual.conP[h*N + j], inode_expected.conP[h*N + j]);
+      assert(double_equal(inode_actual.conP[h*N + j], inode_expected.conP[h*N + j], Small_Diff));
 
-  free(node_actual.conP);
-  free(node_expected.conP);
+  free(ison.conP);
+  free(inode_actual.conP);
+  free(inode_expected.conP);
 }
 
 int
