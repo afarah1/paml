@@ -523,7 +523,7 @@ int PMatUVRoot(double P[], double t, int n, double U[], double V[], double Root[
 {
    /* P(t) = U * exp{Root*t} * V
    */
-   int i, j, k;
+   int i, j, k, ij;
    double exptm1, uexpt, *pP;
 
    NPMatUVRoot++;
@@ -532,10 +532,12 @@ int PMatUVRoot(double P[], double t, int n, double U[], double V[], double Root[
    for (k = 0; k < n; k++) {
       pP = P; 
       exptm1 = expm1(t * Root[k]);
-      for (i = 0; i < n; i++) {
-         uexpt = U[i*n + k] * exptm1;
-         for (j = 0; j < n; j++)
-            pP[i*n + j] += uexpt * V[k*n + j];
+      for (ij = 0; ij < n * n; ij++) {
+         i = ij / n;
+         j = ij % n;
+         if (j == 0)
+           uexpt = U[i*n + k] * exptm1;
+         pP[i*n + j] += uexpt * V[k*n + j];
       }
    }
 
