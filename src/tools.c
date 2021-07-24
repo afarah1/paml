@@ -525,6 +525,10 @@ int PMatUVRoot(double P[], double t, int n, double U[], double V[], double Root[
    */
    int i, j, k, ij;
    double exptm1, uexpt, *pP;
+#ifdef USE_OMP_PMATUV
+   int actual_threads = MAX(1, MIN(omp_get_num_procs(), (n * n)));
+   int chunk = MAX(1, (n * n) / actual_threads);
+#endif
 
    NPMatUVRoot++;
    memset(P, 0, n * n * sizeof(double));
@@ -532,10 +536,14 @@ int PMatUVRoot(double P[], double t, int n, double U[], double V[], double Root[
    for (k = 0; k < n; k++) {
       pP = P; 
       exptm1 = expm1(t * Root[k]);
+      uexpt = NAN;
+#ifdef USE_OMP_PMATUV
+      #pragma omp parallel for default(shared) private(i, j, ij) firstprivate(uexpt) schedule(static, chunk) num_threads(actual_threads)
+#endif
       for (ij = 0; ij < n * n; ij++) {
          i = ij / n;
          j = ij % n;
-         if (j == 0)
+         if (isnan(uexpt) || j == 0)
            uexpt = U[i*n + k] * exptm1;
          pP[i*n + j] += uexpt * V[k*n + j];
       }
