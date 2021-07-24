@@ -527,13 +527,20 @@ int PMatUVRoot(double P[], double t, int n, double U[], double V[], double Root[
    double exptm1, uexpt, *pP;
 
    NPMatUVRoot++;
-   memset(P, 0, n*n * sizeof(double));
+   memset(P, 0, n * n * sizeof(double));
+
    for (k = 0; k < n; k++) {
-      for (i = 0, pP = P, exptm1 = expm1(t*Root[k]); i < n; i++)
-         for (j = 0, uexpt = U[i*n + k] * exptm1; j < n; j++)
-            *pP++ += uexpt*V[k*n + j];
+      pP = P; 
+      exptm1 = expm1(t * Root[k]);
+      for (i = 0; i < n; i++) {
+         uexpt = U[i*n + k] * exptm1;
+         for (j = 0; j < n; j++)
+            pP[i*n + j] += uexpt * V[k*n + j];
+      }
    }
-   for (i = 0; i < n; i++)  P[i*n+i] ++;
+
+   for (i = 0; i < n; i++)  
+     P[i*n + i]++;
 
 #if (DEBUG>=5)
    if (testTransP(P, n)) {

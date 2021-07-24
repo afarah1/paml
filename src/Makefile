@@ -1,8 +1,16 @@
 PRGS =  baseml codeml basemlg mcmctree pamp evolver yn00 chi2
 CC = cc
-# Uncomment -DUSE_OMP -fopenmp and -lgomp for parallel execution using OpenMP
-override CFLAGS += -O3 -Wall -Wno-unused-result #-DUSE_OMP -fopenmp
-LIBS = -lm # -lgomp
+# Parallel implementation flags
+#
+# USE_OMP - Use OpenMP (at all)
+# USE_OMP_CPNODE - Use OpenMP on ConditionalPNode
+# USE_OMP_PMATUV - Use OpenMP on PMatUVRoot
+#
+override CFLAGS += -O3 -Wall -Wno-unused-result 
+override CFLAGS += -DUSE_OMP -fopenmp
+#override CFLAGS += -DUSE_OMP_CPNODE
+override CFLAGS += -DUSE_OMP_PMATUV
+LIBS = -lm -lgomp
 
 all : $(PRGS)
 

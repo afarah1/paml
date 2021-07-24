@@ -3492,7 +3492,7 @@ static double
 ConditionalPNode_InternalNode(int n, int pos0, int pos1, double t, double *PMat,
   struct TREEN *nodes, int inode, int ison)
 {
-#ifdef USE_OMP
+#ifdef USE_OMP_CPNODE
   int actual_threads = MAX(1, MIN(omp_get_num_procs(), n));
   int chunk = MAX(1, n / actual_threads);
 #endif
@@ -3501,7 +3501,7 @@ ConditionalPNode_InternalNode(int n, int pos0, int pos1, double t, double *PMat,
     h = hj / n;
     j = hj % n;
     t = 0;
-#ifdef USE_OMP
+#ifdef USE_OMP_CPNODE
     #pragma omp parallel for schedule(static, chunk) num_threads(actual_threads) default(shared) private(k) reduction(+:t)
 #endif
     for (k = 0; k < n; k++) {
