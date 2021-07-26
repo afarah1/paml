@@ -7,9 +7,9 @@ CC = cc
 # USE_OMP_PMATUV - Use OpenMP on PMatUVRoot
 #
 override CFLAGS += -O3 -Wall -Wno-unused-result 
-override CFLAGS += -DUSE_OMP -fopenmp
+#override CFLAGS += -DUSE_OMP -fopenmp
 #override CFLAGS += -DUSE_OMP_CPNODE
-override CFLAGS += -DUSE_OMP_PMATUV
+#override CFLAGS += -DUSE_OMP_PMATUV
 LIBS = -lm -lgomp
 
 all : $(PRGS)
